@@ -45,3 +45,47 @@ O que temos até agora é:
 | Compilador C | GCC cross-compiler (`i686-elf`) |
 | Emulador | QEMU (`qemu-system-i386`) |
 | Bootloader | Próprio (pelo menos no começo) |
+
+## O que a CPU encontra quando liga
+
+Quando a energia chega (literal mesmo, no sentido físico), o processador x86 sempre começa no mesmo estado: ele acorda em **real mode** (modo real), que é o modo de operação original do Intel 8086 (iAPX 86) de 1978. Nesse modo, a CPU se comporta como se fosse um processador de 16 bits com acesso a apenas 1MB de memória. Não importa se você tem um i9 com 64GB de RAM, nos primeiros milissegundos você "está em 1978".
+
+A primeira coisa que a CPU faz é buscar uma instrução no endereço `0xFFFFFFF0` (são 7 Fs), ou seja, o topo da memória endereçável. Esse endereço aponta pra uma ROM na placa-mãe que contém o BIOS (Basic Input/Output System) ou o UEFI (Unified Extensible Firmware Interface) em máquinas mais modernas. No nosso caso, vamos trabalhar com BIOS porque o QEMU emula perfeitamente (e eu to achando conteúdo mais fácil também).
+
+O BIOS faz o trabalho sujo inicial: testa a RAM, detecta dispositivos, inicializa o básico. Depois ele precisa encontrar algo pra bootar, e aqui temos um contrato simples e antigo.
+
+### O contrato do boot: o MBR
+
+O BIOS olha pros dispositivos do boot (disco rígido, USB, etc) e lê os primeiros 512 bytes do disco. Esse setor é o MBR (Master Boot Record). O BIOS verifica uma coisa só: os dois últimos bytes desse setor precisam ser `0x55` e `0xAA`. Essa é a assinatura de boot, se estiver lá, o BIOS assume que é código executável, carrega esses 512 bytes no endereço `0x7C00` da memória e pula a execução pra lá.
+
+Isso significa que os primeiros 512 bytes do discos são o programa. Não tem loader, não tem runtime, não tem nada. A CPU começa a executar o que estiver ali, em modo real 16-bit, e o que acontecer a partir daí, bom... é problema seu xD
+
+512 bytes é quase nada, deve dar umas 100~200 instruções Assembly no máximo e olhe lá. Por isso a maioria dos OS usa um modelo de dois estágios:
+
+1. O primeiro estágio cabe nos 512 bytes iniciais e a única função dele é carregar o próximo estágio do disco pra memória.
+2. O segundo estágio, por sua vez, tem espaço pra fazer o trabalho pesado que for preciso: configurar o modo protegido, carregar o kernel, etc.
+
+## O mapa da memória em modo real
+
+Quando o BIOS te entrega o controle, a memória está organizada assim (de forma BEM simplificada):
+
+```plaintext
+0x00000 ~ 0x003FF   Interrupt Vector Table (IVT), tabela de interrupções do BIOS
+0x00400 ~ 0x004FF   BIOS Data Area
+0x00500 ~ 0x07BFF   Livre, você pode usar
+0x07C00 ~ 0x07DFF   Seu bootloader (512 bytes, carregado pelo BIOS)
+0x07E00 ~ 0x7FFFF   Livre, você pode usar
+0x80000 ~ 0x9FFFF   Parcialmente livre (depende do hardware)
+0xA0000 ~ 0xBFFFF   Memória de vídeo (VGA)
+0xC0000 ~ 0xFFFFF   ROMs do BIOS e de dispositivos
+```
+
+Note que o IVT (Interrupt Vector Table) fica lá no começo. É uma tabela de 256 entradas com endereços de handlers de interrupção, tanto de hardware (teclado, timer) quanto de software que o BIOS oferece como serviço. Em modo real, você usa essas interrupções do BIOS pra fazer coisas como ler setores do disco (`int 0x13`) e imprimir caracteres na tela (`int 0x10`). Quando a gente sair do modo real pra modo protegido, a IVT deixa de funcionar e perdemos o acesso a esses serviços (outra razão pra fazer certas coisas, como carregar o kernel do disco ainda em modo real).
+
+## Registradores que importam agora
+
+Em modo real 16-bit, os registradores principais que vamos usar são:
+
+- **Registradores gerais (16-bit)**: `AX`, `BX`, `CX` e `DX`, cada um pode ser dividido em parte alta e baixa (`AH`/`AL`, etc). Usados pra dados, contadores, parâmetros de interrupções do BIOS.
+- **Registradores de segmento**: `CS` (Code Segment), `DS` (Data Segment), `SS` (Stack Segment), `ES` (Extra Segment). Em modo real, a memória é acessada como `segment * 16 + offset`. Quando o BIOS pula pro `0x7C00`, o `CS` pode estar em `0x0000` com offset `0x7C00`, ou `0x07C0` com offset `0x0000`, o que dá o mesmo endereço físico. Pegadinha clássica de bootloader, inclusive.
+- **Registrador de pilha**: `SP` (Stack Pointer), ponteiro da stack. Precisamos configurar isso logo no início, porque sem stack não dá pra chamar funções nem usar `push`/`pop`. `IP` (Instruction Pointer), endereo da próxima instrução. Não vamos escrever nele diretamente, ele avança sozinho ou muda com `jmp`/`call`.
