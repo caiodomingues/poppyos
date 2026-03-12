@@ -31,6 +31,12 @@ build/kernel.bin: build/kernel_entry.o build/kernel.o
 build/os.bin: build/boot.bin build/stage2.bin build/kernel.bin
 	cat $^ > $@
 
+build/vga.o: src/vga.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+build/kernel.bin: build/kernel_entry.o build/kernel.o build/vga.o
+	$(LD) -T src/linker.ld -o $@ $^ --oformat binary
+
 clean: 
 	rm -rf build
 

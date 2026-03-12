@@ -19,8 +19,18 @@ O stage 2 em Assembly faz o setup que C não consegue fazer (GDT, modo protegido
 Resumo simples do que é o `linker.ld`:
 
 - `ENTRY(kernel_main)`: define o ponto de entrada do binário.
-- `. = 0x1000`: diz que o código começa no endereço `0x1000` da memória, o `.` é o "location counter", a posição atual na memória.
+- `. = 0x1000`: diz que o código começa no endereço `0x8000` da memória, o `.` é o "location counter", a posição atual na memória.
 - `.text`: seção de código executável (funções)
 - `.rodata`: dados somente de leitura (strings, constantes)
 - `.data`: dados inicializados (variáveis globais com valor)
 - `.bss`: dados não inicializados (variáveis globais zeradas). A CPU sabe que essa seção deve ser zerada na inicialização.
+
+## Organizando a casa
+
+Agora que temos boa parte do início funcionando, vamos organizar o código C. Vamos precisar imprimir texto o tempo todo pra debug, erros, status e etc. Ficar escrevendo manualmente em `0xB8000` toda hora é chato e inviável, vamos fazer um mini "driver" de VGA.
+
+A ideia é separar a lógica de vídeo num módulo próprio `vga.h` (interface) e `vga.c` (implementação). O kernel chama funções como `vga_print("texto")` sem se preocupar com endereços de memória. Pra isso, vamos usar alguns conceitos de C, como:
+
+- `#ifndef`/`#define`/`#endif`: são include guards, previnem que o mesmo header seja incluído duas vezes num build, é o equivalente a uma checagem de "eu já importei isso?".
+- `enum`: mesmo conceito de enumeração em TypeScript ou outras langs, define constantes nomeadas.
+- `const char*`: ponteiro pra uma string que não deve ser modificada.
