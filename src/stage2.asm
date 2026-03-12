@@ -71,11 +71,13 @@ protected_mode:
     mov es, ax
     mov fs, ax
     mov gs, ax
-    mov ebp, 0x9000                 ; stack in high address
+    mov ebp, 0x90000                ; stack in high address
     mov esp, ebp
 
     ; Prints directly at video memory using VGA (int 0x10 doesn't work anymore!)
     mov byte [0xB8000], 'O'         ; char
     mov byte [0xB8001], 0x0A        ; attribute: green ov black :D
 
-    jmp $
+    jmp 0x8000                      ; jump to the next stage (kernel) at 0x8000 (address defined at linker)
+
+times 512 - ($ - $$) db 0           ; pad the rest of the sector with zeros

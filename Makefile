@@ -1,0 +1,42 @@
+ASM=nasm
+CC=i686-elf-gcc
+LD=i686-elf-ld
+
+CFLAGS=-ffreestanding -m32 -nostdlib -nostdinc -fno-builtin -fno-stack-protector -nostartfiles -nodefaultlibs
+
+all: build/os.bin
+
+# Stage 1: bootloader
+build/boot.bin: src/boot.asm
+	mkdir -p build
+	$(ASM) -f bin $< -o $@
+
+# Stage 2: setup of protected mode
+build/stage2.bin: src/stage2.asm
+	$(ASM) -f bin $< -o $@
+
+# Kernel entry: bridge ASM -> C
+build/kernel_entry.o: src/kernel_entry.asm
+	$(ASM) -f elf32 $< -o $@
+
+# Kernel C
+build/kernel.o: src/kernel.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# Links kernel_entry + kernel
+build/kernel.bin: build/kernel_entry.o build/kernel.o
+	$(LD) -T src/linker.ld -o $@ $^ --oformat binary
+
+# Merge
+build/os.bin: build/boot.bin build/stage2.bin build/kernel.bin
+	cat $^ > $@
+
+clean: 
+	rm -rf build
+
+run: build/os.bin
+	qemu-system-i386 -drive format=raw,file=$<,index=0,if=floppy
+
+rebuild:
+	make clean
+	make all
