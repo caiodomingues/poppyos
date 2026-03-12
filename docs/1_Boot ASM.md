@@ -87,3 +87,18 @@ mov ah, 0x0E    ; função 0x0E = teletype output
 mov al, 'P'     ; caractere 'P' em ASCII
 int 0x10        ; chama o serviço de vídeo do BIOS (P aparece na tela)
 ```
+
+---
+
+Anotações pra lembrar que esses números não são mágicos, eles têm significados específicos (com base no que usei na primeira versão do boot.asm):
+
+- `0x7C00` - É onde a BIOS do IBM PC original decidiu carregar o bootloader em 1981, virou padrão.
+- `0x10` - É o número da interrupção do BIOS.
+- `0x0E` - É o código da função"teletype" dentro desse serviço
+
+E mais especificamente sobre o `$` e `$$`:
+
+- `$ - $$` - é equivalente a quantos bytes já foram escritos até aqui
+- `510 - ($ - $$)` - é quantos bytes faltam pra chegar no byte 510
+- `db 0` - o que repetir (um byte zero)
+
