@@ -37,6 +37,21 @@ build/vga.o: src/vga.c
 build/kernel.bin: build/kernel_entry.o build/kernel.o build/vga.o
 	$(LD) -T src/linker.ld -o $@ $^ --oformat binary
 
+build/isr.o: src/isr.asm
+	$(ASM) -f elf32 $< -o $@
+
+build/isr_setup.o: src/isr_setup.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+build/isr_handler.o: src/isr.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+build/idt.o: src/idt.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+build/kernel.bin: build/kernel_entry.o build/kernel.o build/vga.o build/idt.o build/isr.o build/isr_setup.o build/isr_handler.o
+	$(LD) -T src/linker.ld -o $@ $^ --oformat binary
+
 clean: 
 	rm -rf build
 
