@@ -17,7 +17,7 @@ call print                      ; Now we have a working stack, we can use call/r
 
 ; 4 - Loads stage 2 from disk
 mov ah, 0x02                    ; Function: read sectors
-mov al, 8                       ; How many sectors to read (4096 bytes, stage2 + kernel)
+mov al, 32                       ; How many sectors to read (32 sectors = 16KB)
 mov ch, 0                       ; Cylinder 0
 mov cl, 2                       ; Sector 2 (right after the boot sector)
 mov dh, 0                       ; Head 0

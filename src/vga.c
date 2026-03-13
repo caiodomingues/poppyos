@@ -85,6 +85,15 @@ void vga_print_char(char c)
             cursor_row = 0; // Scroll or reset to top
         }
     }
+    else if (c == '\b')
+    {
+        if (cursor_col > 0)
+        {
+            cursor_col--;
+            video[(cursor_row * VGA_WIDTH + cursor_col) * 2] = ' ';
+            video[(cursor_row * VGA_WIDTH + cursor_col) * 2 + 1] = (VGA_BLACK << 4) | VGA_LIGHT_GREY;
+        }
+    }
     else
     {
         video[(cursor_row * VGA_WIDTH + cursor_col) * 2] = c;

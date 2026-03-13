@@ -1,5 +1,6 @@
 #include "isr.h"
 #include "vga.h"
+#include "keyboard.h"
 
 // From here: https://wiki.osdev.org/Exceptions
 static const char *exception_names[] = {
@@ -51,4 +52,16 @@ void isr_handler(struct isr_frame frame)
     // Halt - an exception at this point is fatal
     for (;;)
         ;
+}
+
+#include "pic.h"
+
+void irq_handler(struct isr_frame frame)
+{
+    // Sends EOI to the PIC (mandatory!)
+    pic_send_eoi(frame.int_no - 32);
+
+    // If interruption is 33 (keyboard), call the keyboard handler
+    if (frame.int_no == 33)
+        keyboard_handler();
 }

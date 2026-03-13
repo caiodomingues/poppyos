@@ -52,3 +52,22 @@ A solução é um wrapper em Assembly pra cada interrupção que faz `pusha` (sa
 > Um stub de ISR em Assembly atua como uma "ponte" ou intermediário entre o hardware (que gerou a interrupção) e o manipulador principal da interrupção (geralmente a linguagem de alto nível, como C no nosso caso)
 
 Os **Macros NASM** (`%macro`/`%endmacro`) gera código reptitivo. `ISR_NO_ERR_0` expande pra uma função `isr0` que empurra um error code falso (0) e o número da interrupção (0) na stack. Algumas exceções (como page fault, double fault) já empurram um error code automaticamente, por isso tem duas macros.
+
+## PIC e IRQs de hardware
+
+O PIC (Programmable Interrupt Controller) é o chip que recebe sinais de hardware (teclado, timer, disco) e avisa a CPU. O PC tem dois PICs encadeados, como dissemos antes:
+
+- Master (PIC1): gerencia IRQ 0-7
+- Slave (PIC2): gerencia IRQ 8-15, conectado na IRQ 2 do master
+
+Por padrão, a BIOS mapeia IRQ 0-7 nas interrupções 8-15. O problema: as exceções da CPU ocupam 0-31. Então IRQ 0 (timer) cai na interrupção 8 (Double Fault). A CPU não consegue distinguir "o timer disparou" de "deu double fault". Precisamos remapear pra uma faixa livre.
+
+A comunicação com o PIC é via portas de I/O, endereços especiais que não são memória, mas sim canais de comunicação com hardware. Você lê e escreve neles com instruções `in` e `out`. Em C, precisamos de wrappers: `ports.h`:
+
+- `inb`/`outb`: instruções x86 que leem/escrevem um byte de/para uma porta de I/O. O `"=a"` e `"a"` dizem pro GCC usar o registrador `EAX`. O `"Nd"` diz pra usar `EDX` ou uma constante.
+
+---
+
+O processo de remapeamento é uma sequência de **ICW (Initialization Command Words)**: é o protocolo que o chip 8259A espera. Cada `port_out` envia um comando específico. Os `io_wait()` dão tempo pro chip processar. Os valores `0x20` e `0x28` são os offsets que escolhemos: IRQ 0 vira interrupção 32 (`0x20`), IRQ 8 vira interrupção 40 (`0x28`).
+
+**EOI (End of Interrupt)**: depois de tratar uma IRQ, você precisa avisar o PIC que terminou, senão ele não envia mais interrupções. Se a IRQ veio do slave (8-15), precisa avisar os dois.
