@@ -14,7 +14,10 @@ KERNEL_OBJS = build/kernel_entry.o \
               build/isr_handler.o \
               build/pic.o \
 			  build/keyboard.o \
-			  build/shell.o
+			  build/shell.o \
+			  build/paging.o \
+			  build/pmm.o \
+			  build/heap.o
 
 all: build/os.bin
 

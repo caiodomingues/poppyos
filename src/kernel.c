@@ -2,6 +2,9 @@
 #include "idt.h"
 #include "pic.h"
 #include "shell.h"
+#include "paging.h"
+#include "pmm.h"
+#include "heap.h"
 
 extern void isr_install(void);
 
@@ -16,6 +19,24 @@ void kernel_main()
     pic_remap();
     vga_print("IDT loaded.\n");
     vga_print("PIC remapped.\n");
+
+    paging_init();
+    vga_print("Paging enabled.\n");
+
+    pmm_init();
+    vga_print("Physical memory manager initialized.\n");
+
+    heap_init();
+    vga_print("Heap initialized.\n");
+
+    // Teste do heap
+    char *test = (char *)kmalloc(16);
+    test[0] = 'H';
+    test[1] = 'i';
+    test[2] = '\0';
+    vga_print(test);
+    vga_print("\n");
+    kfree(test);
 
     // Enable interrupts
     asm volatile("sti");
