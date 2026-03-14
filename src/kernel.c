@@ -5,6 +5,7 @@
 #include "paging.h"
 #include "pmm.h"
 #include "heap.h"
+#include "isr.h"
 
 extern void isr_install(void);
 
@@ -29,14 +30,8 @@ void kernel_main()
     heap_init();
     vga_print("Heap initialized.\n");
 
-    // Teste do heap
-    char *test = (char *)kmalloc(16);
-    test[0] = 'H';
-    test[1] = 'i';
-    test[2] = '\0';
-    vga_print(test);
-    vga_print("\n");
-    kfree(test);
+    timer_init();
+    vga_print("Timer initialized.\n");
 
     // Enable interrupts
     asm volatile("sti");
