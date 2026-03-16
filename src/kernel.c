@@ -6,6 +6,7 @@
 #include "pmm.h"
 #include "heap.h"
 #include "isr.h"
+#include "timer.h"
 
 extern void isr_install(void);
 
@@ -30,7 +31,7 @@ void kernel_main()
     heap_init();
     vga_print("Heap initialized.\n");
 
-    timer_init();
+    timer_init(100); // Initialize timer with 100 Hz frequency
     vga_print("Timer initialized.\n");
 
     // Enable interrupts
