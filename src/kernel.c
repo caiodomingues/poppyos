@@ -1,12 +1,12 @@
 #include "vga.h"
 #include "idt.h"
 #include "pic.h"
-#include "shell.h"
+#include "timer.h"
 #include "paging.h"
 #include "pmm.h"
 #include "heap.h"
-#include "isr.h"
-#include "timer.h"
+#include "task.h"
+#include "shell.h"
 
 extern void isr_install(void);
 
@@ -22,29 +22,27 @@ void kernel_main()
     vga_print("IDT loaded.\n");
     vga_print("PIC remapped.\n");
 
+    pmm_init();
     paging_init();
     vga_print("Paging enabled.\n");
-
-    pmm_init();
-    vga_print("Physical memory manager initialized.\n");
 
     heap_init();
     vga_print("Heap initialized.\n");
 
-    timer_init(100); // Initialize timer with 100 Hz frequency
+    timer_init(100);
     vga_print("Timer initialized.\n");
 
-    // Enable interrupts
+    task_init();
+    vga_print("Task system initialized.\n");
+
     asm volatile("sti");
-
     vga_print("Interrupts enabled.\n");
-    vga_print("System ready.\n");
 
+    vga_print("System ready.\n\n");
     shell_init();
 
-    // Halt the CPU to save power until the next interrupt occurs
     for (;;)
     {
-        asm volatile("hlt"); // Halts the CPU until the next interrupt
+        asm volatile("hlt");
     }
 }

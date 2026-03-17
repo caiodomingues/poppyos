@@ -2,6 +2,8 @@
 #include "vga.h"
 #include "keyboard.h"
 #include "timer.h"
+#include "pic.h"
+#include "task.h"
 
 // From here: https://wiki.osdev.org/Exceptions
 static const char *exception_names[] = {
@@ -55,8 +57,6 @@ void isr_handler(struct isr_frame frame)
         ;
 }
 
-#include "pic.h"
-
 void irq_handler(struct isr_frame frame)
 {
     // Sends EOI to the PIC (mandatory!)
@@ -64,9 +64,13 @@ void irq_handler(struct isr_frame frame)
 
     // If interruption is 32 (timer), call the timer tick function
     if (frame.int_no == 32)
+    {
         timer_tick();
-
-    // If interruption is 33 (keyboard), call the keyboard handler
-    if (frame.int_no == 33)
+        schedule();
+    }
+    else if (frame.int_no == 33)
+    {
+        // If interruption is 33 (keyboard), call the keyboard handler
         keyboard_handler();
+    }
 }

@@ -18,7 +18,9 @@ KERNEL_OBJS = build/kernel_entry.o \
 			  build/paging.o \
 			  build/pmm.o \
 			  build/heap.o \
-			  build/timer.o
+			  build/timer.o \
+              build/task.o \
+              build/switch.o
 
 all: build/os.bin
 
