@@ -1,4 +1,5 @@
 #include "vga.h"
+#include "types.h"
 
 #define VGA_WIDTH 80
 #define VGA_HEIGHT 25
@@ -109,4 +110,13 @@ void vga_print_char(char c)
             }
         }
     }
+}
+
+// GCC freestanding may require these functions, so we provide simple implementations
+void *memset(void *ptr, int value, uint32_t size)
+{
+    uint8_t *p = (uint8_t *)ptr;
+    for (uint32_t i = 0; i < size; i++)
+        p[i] = (uint8_t)value;
+    return ptr;
 }

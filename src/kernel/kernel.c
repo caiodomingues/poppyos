@@ -7,6 +7,7 @@
 #include "heap.h"
 #include "task.h"
 #include "shell.h"
+#include "fs.h"
 
 extern void isr_install(void);
 
@@ -38,8 +39,11 @@ void kernel_main()
     asm volatile("sti");
     vga_print("Interrupts enabled.\n");
 
-    vga_print("System ready.\n\n");
+    fs_init();
+    vga_print("Filesystem initialized.\n");
+
     shell_init();
+    vga_print("System ready.\n\n");
 
     for (;;)
     {
